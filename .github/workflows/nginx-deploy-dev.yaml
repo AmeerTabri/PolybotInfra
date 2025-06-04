@@ -9,26 +9,25 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to Dev EC2
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.7.0
-      with:
-        ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-    - name: Upload Nginx config to EC2
-      run: |
-        scp -o StrictHostKeyChecking=no nginx-config/polybot-dev ubuntu@${{ secrets.EC2_HOST }}:/tmp/polybot-dev
+      - name: Upload Nginx config to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no nginx-config/polybot-dev ubuntu@${{ secrets.EC2_HOST }}:/tmp/polybot-dev
 
-    - name: Move config & reload Nginx
-      run: |
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-          sudo mv /tmp/polybot-dev /etc/nginx/sites-available/polybot-dev
-          sudo ln -sf /etc/nginx/sites-available/polybot-dev /etc/nginx/sites-enabled/polybot-dev
-          sudo nginx -t && sudo systemctl reload nginx
-        EOF
+      - name: Move config & reload Nginx
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo mv /tmp/polybot-dev /etc/nginx/sites-available/polybot-dev
+            sudo ln -sf /etc/nginx/sites-available/polybot-dev /etc/nginx/sites-enabled/polybot-dev
+            sudo nginx -t && sudo systemctl reload nginx
+          EOF
