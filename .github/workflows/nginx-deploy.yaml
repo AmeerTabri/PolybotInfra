@@ -1,13 +1,34 @@
-name: Dummy Deploy
+name: Deploy Nginx Config (Main)
 
 on:
   push:
     branches:
       - main
+    paths:
+      - "nginx-config/polybot"
 
 jobs:
-  noop:
+  deploy:
+    name: Deploy to Prod EC2
     runs-on: ubuntu-latest
+
     steps:
-      - name: Do nothing
-        run: echo "This is a placeholder"
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Upload Nginx config to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no nginx-config/polybot ubuntu@${{ secrets.EC2_HOST }}:/tmp/polybot
+
+      - name: Move config & reload Nginx
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo mv /tmp/polybot /etc/nginx/sites-available/polybot
+            sudo ln -sf /etc/nginx/sites-available/polybot /etc/nginx/sites-enabled/polybot
+            sudo nginx -t && sudo systemctl reload nginx
+          EOF
