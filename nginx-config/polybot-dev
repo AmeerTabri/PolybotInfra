@@ -1,0 +1,13 @@
+server {
+    listen 443 ssl;
+    server_name dev.ameer.fursa.click;
+
+    ssl_certificate /etc/letsencrypt/live/dev.ameer.fursa.click/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/dev.ameer.fursa.click/privkey.pem;
+
+    location / {
+        proxy_pass http://10.0.0.207:8443;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
