@@ -1,19 +1,19 @@
-name: Deploy Nginx Config (Dev)
+name: Deploy Nginx (Dev)
 
 on:
   push:
     branches:
       - dev
     paths:
-      - "nginx-config/polybot-dev"
+      - "nginx-config/**"
+      - ".github/workflows/deploy-nginx.yml"
 
 jobs:
   deploy:
-    name: Deploy to Dev EC2
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up SSH
@@ -21,14 +21,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Upload Nginx config to EC2
+      - name: Copy config and certs
         run: |
-          scp -o StrictHostKeyChecking=no nginx-config/polybot-dev ubuntu@${{ secrets.EC2_HOST }}:/tmp/polybot-dev
+          scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST_DEV }}:/home/ubuntu/conf.d/
+          scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST_DEV }}:/home/ubuntu/certs/
 
-      - name: Move config & reload Nginx
+      - name: Deploy NGINX container
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-            sudo mv /tmp/polybot-dev /etc/nginx/sites-available/polybot-dev
-            sudo ln -sf /etc/nginx/sites-available/polybot-dev /etc/nginx/sites-enabled/polybot-dev
-            sudo nginx -t && sudo systemctl reload nginx
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST_DEV }} << 'EOF'
+            bash ~/PolybotInfra/scripts/deploy_nginx.sh
           EOF
