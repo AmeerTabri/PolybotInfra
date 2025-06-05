@@ -18,10 +18,12 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Copy config and certs
+      - name: Copy NGINX config (and certs if they exist)
         run: |
           scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/conf.d/
-          scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/certs/
+          if [ -d certs ]; then
+            scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/certs/
+          fi
 
       - name: Deploy NGINX container
         run: |
