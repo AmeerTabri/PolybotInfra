@@ -21,7 +21,7 @@ jobs:
       - name: Copy config and certs
         run: |
           scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/conf.d/
-          scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST_DEV }}:/home/ubuntu/certs/
+          scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/certs/
 
       - name: Deploy NGINX container
         run: |
