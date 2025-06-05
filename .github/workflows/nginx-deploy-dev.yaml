@@ -18,15 +18,16 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Copy NGINX config (and certs if they exist)
+      - name: Copy config and certs
         run: |
           scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/conf.d/
           if [ -d certs ]; then
             scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/certs/
           fi
+          scp -o StrictHostKeyChecking=no deploy_nginx.sh ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/
 
       - name: Deploy NGINX container
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-            bash ~/PolybotInfra/scripts/deploy_nginx.sh
+            bash /home/ubuntu/deploy_nginx.sh
           EOF
