@@ -1,19 +1,16 @@
-name: Deploy Nginx Config (Main)
+name: Deploy Nginx (Prod)
 
 on:
   push:
     branches:
       - main
-    paths:
-      - "nginx-config/polybot"
 
 jobs:
   deploy:
-    name: Deploy to Prod EC2
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up SSH
@@ -21,14 +18,16 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Upload Nginx config to EC2
+      - name: Copy config and certs
         run: |
-          scp -o StrictHostKeyChecking=no nginx-config/polybot ubuntu@${{ secrets.EC2_HOST }}:/tmp/polybot
+          scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST_PROD }}:/home/ubuntu/conf.d/
+          if [ -d certs ]; then
+            scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST_PROD }}:/home/ubuntu/certs/
+          fi
+          scp -o StrictHostKeyChecking=no deploy_nginx.sh ubuntu@${{ secrets.EC2_HOST_PROD }}:/home/ubuntu/
 
-      - name: Move config & reload Nginx
+      - name: Deploy NGINX container
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
-            sudo mv /tmp/polybot /etc/nginx/sites-available/polybot
-            sudo ln -sf /etc/nginx/sites-available/polybot /etc/nginx/sites-enabled/polybot
-            sudo nginx -t && sudo systemctl reload nginx
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST_PROD }} << 'EOF'
+            bash /home/ubuntu/deploy_nginx.sh
           EOF
