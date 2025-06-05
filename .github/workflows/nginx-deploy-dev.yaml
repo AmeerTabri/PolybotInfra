@@ -1,17 +1,19 @@
-name: Deploy Nginx Config (dev)
+name: Deploy Nginx (Dev)
 
 on:
   push:
     branches:
       - dev
+    paths:
+      - "nginx-config/**"
+      - ".github/workflows/deploy-nginx.yml"
 
 jobs:
   deploy:
-    name: Deploy to Dev EC2
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Set up SSH
@@ -19,26 +21,13 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Install Docker on EC2
+      - name: Copy config and certs
+        run: |
+          scp -o StrictHostKeyChecking=no -r nginx-config/* ubuntu@${{ secrets.EC2_HOST_DEV }}:/home/ubuntu/conf.d/
+          scp -o StrictHostKeyChecking=no -r certs/* ubuntu@${{ secrets.EC2_HOST_DEV }}:/home/ubuntu/certs/
+
+      - name: Deploy NGINX container
         run: |
           ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST_DEV }} << 'EOF'
-            set -e
-
-            sudo apt-get update
-            sudo apt-get install -y ca-certificates curl gnupg
-
-            sudo install -m 0755 -d /etc/apt/keyrings
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
-            sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-            echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \$(. /etc/os-release && echo \${UBUNTU_CODENAME:-\$VERSION_CODENAME}) stable" | \
-              sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-            sudo apt-get update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-            sudo systemctl enable docker
-            sudo systemctl start docker
-
-            docker --version
+            bash ~/PolybotInfra/scripts/deploy_nginx.sh
           EOF
