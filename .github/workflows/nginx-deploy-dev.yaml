@@ -19,22 +19,21 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Install Docker & Upload Nginx config to EC2
+      - name: Install Docker on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST_DEV }} << 'EOF'
-            # Install prerequisites
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST_DEV }} << EOF
+            set -e
             sudo apt-get update
             sudo apt-get install -y ca-certificates curl
 
-            # Add Docker's GPG key
             sudo install -m 0755 -d /etc/apt/keyrings
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
             sudo chmod a+r /etc/apt/keyrings/docker.asc
 
-            # Set up the repository
-            echo "deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \\
-            \$(. /etc/os-release && echo \"\${UBUNTU_CODENAME:-\$VERSION_CODENAME}\") stable" | \
-            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+            ARCH=\$(dpkg --print-architecture)
+            CODENAME=\$(. /etc/os-release && echo \${UBUNTU_CODENAME:-\$VERSION_CODENAME})
+            echo "deb [arch=\$ARCH signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \$CODENAME stable" | \
+              sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
             sudo apt-get update
             sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
