@@ -22,12 +22,12 @@ provider "aws" {
 
 resource "aws_instance" "polybot_app" {
   ami                         = var.ami_id
-  instance_type               = "t2.micro"
+  instance_type               = "t2.medium"
   subnet_id                   = module.polybot_service_vpc.public_subnets[0]
   vpc_security_group_ids      = [aws_security_group.polybot_app_sg.id]
   associate_public_ip_address = true
 
-  key_name = "AmeerKeyPair"  # ✅ Directly use the existing key name
+  key_name = "AmeerKeyPair"
 
   tags = {
     Name      = "ameer-control-plane"
@@ -47,35 +47,31 @@ module "polybot_service_vpc" {
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24"]
 
   enable_nat_gateway = false
-
-  tags = {
-    Env = var.env
-  }
 }
 
-resource "aws_security_group" "polybot_app_sg" {
-  name        = "ameer-tf-group"   # ✅ use your name
-  description = "Allow SSH and HTTP traffic"
+resource "aws_security_group" "control_plane_sg" {
+  name        = "ameer-control-plane-sg"
+  description = "Allow SSH and Kubernetes API"
   vpc_id      = module.polybot_service_vpc.vpc_id
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]   # allow SSH from anywhere (or limit to your IP)
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
+    from_port   = 6443
+    to_port     = 6443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]   # allow HTTP from anywhere
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]   # allow all outbound traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
