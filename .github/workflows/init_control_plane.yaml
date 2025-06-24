@@ -13,11 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
       - name: Terraform Init & Apply
+        working-directory: tf
         run: |
           terraform init
           terraform apply -auto-approve -var-file=region.us-west-2.tfvars
 
       - name: Run control plane init script
-        run: ./init_control_plane.sh
         working-directory: tf
+        run: ./init_control_plane.sh
