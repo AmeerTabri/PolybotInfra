@@ -1,24 +1,42 @@
+name: Init Control Plane
+
+on:
+  push:
+    branches:
+      - feature/k8s-infra
+  workflow_dispatch:
+
 jobs:
   init_control_plane:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: ✅ Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
+      - name: ✅ Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Setup AWS credentials
+      - name: ✅ Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-west-2
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Terraform Init & Output
+      - name: ✅ Terraform Init & Output
         working-directory: tf
         run: |
           terraform init
           terraform output -raw control_plane_public_ip > ip.txt
 
-      # ... rest stays the same
+      - name: ✅ Save EC2 SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: ✅ Run Control Plane Init Script
+        working-directory: tf
+        run: |
+          chmod +x init_control_plane.sh
+          ./init_control_plane.sh $(cat ip.txt) ../key.pem
