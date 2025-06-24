@@ -11,39 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: ⚙️ Setup Terraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: 🔑 Configure AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: us-west-2
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: 🗂️ Terraform Init & Output IP
+      - name: Terraform Init and Output IP
         working-directory: tf
         run: |
           terraform init
           terraform output -raw control_plane_public_ip > ip.txt
 
-      - name: 🔐 Save EC2 SSH key
+      - name: Save EC2 SSH key
         working-directory: tf
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
 
-      - name: 🚀 Copy & Run Init Script on Control Plane
+      - name: Copy and Run Init Script on Control Plane
         working-directory: tf
         run: |
-          # Ensure script is executable locally
           chmod +x init_control_plane.sh
-
-          # Copy script to EC2
           scp -i key.pem -o StrictHostKeyChecking=no init_control_plane.sh ubuntu@$(cat ip.txt):~/init_control_plane.sh
-
-          # SSH and run it remotely
           ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@$(cat ip.txt) "chmod +x ~/init_control_plane.sh && ~/init_control_plane.sh"
