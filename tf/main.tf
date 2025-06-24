@@ -9,9 +9,9 @@ terraform {
   required_version = ">= 1.7.0"
 
   backend "s3" {
-    bucket = "ameer-tf-state"    # ✅ your S3 bucket
-    key    = "terraform.tfstate" # ✅ state file name
-    region = "us-west-2"         # ✅ backend region (must be static)
+    bucket = "ameer-tf-state"
+    key    = "terraform.tfstate"
+    region = "us-west-2"
   }
 }
 
@@ -20,26 +20,12 @@ provider "aws" {
   profile = "default"
 }
 
-resource "aws_instance" "polybot_app" {
-  ami                         = var.ami_id
-  instance_type               = "t2.medium"
-  subnet_id                   = module.polybot_service_vpc.public_subnets[0]
-  vpc_security_group_ids      = [aws_security_group.polybot_app_sg.id]
-  associate_public_ip_address = true
-
-  key_name = "AmeerKeyPair"
-
-  tags = {
-    Name      = "ameer-control-plane"
-    Terraform = "true"
-  }
-}
-
+# ✅ VPC created at root
 module "polybot_service_vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.8.1"
 
-  name = "AmeerVPC"
+  name = "AmeerVPC2"
   cidr = "10.0.0.0/16"
 
   azs             = ["us-west-2a", "us-west-2b"]
@@ -49,29 +35,11 @@ module "polybot_service_vpc" {
   enable_nat_gateway = false
 }
 
-resource "aws_security_group" "control_plane_sg" {
-  name        = "ameer-control-plane-sg"
-  description = "Allow SSH and Kubernetes API"
-  vpc_id      = module.polybot_service_vpc.vpc_id
+# ✅ Call k8s module and pass VPC + subnet
+module "k8s_cluster" {
+  source = "./modules/k8s-cluster"
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  ami_id   = var.ami_id
+  vpc_id   = module.polybot_service_vpc.vpc_id
+  subnet_id = module.polybot_service_vpc.public_subnets[0]
 }
