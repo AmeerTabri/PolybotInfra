@@ -4,8 +4,8 @@ resource "aws_instance" "control-plane" {
   subnet_id                   = var.subnet_id
   vpc_security_group_ids      = [aws_security_group.control_plane_sg.id]
   associate_public_ip_address = true
-
   key_name = "AmeerKeyPair"
+  user_data = file("${path.module}/user_data_control_plane.sh")
 
   tags = {
     Name      = "ameer-control-plane"
