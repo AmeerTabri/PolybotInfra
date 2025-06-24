@@ -1,0 +1,23 @@
+name: Init Control Plane
+
+on:
+  push:
+    branches:
+      - feature/k8s-infra
+  workflow_dispatch:
+
+jobs:
+  init_control_plane:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Terraform Init & Apply
+        run: |
+          terraform init
+          terraform apply -auto-approve -var-file=region.us-west-2.tfvars
+
+      - name: Run control plane init script
+        run: ./init_control_plane.sh
+        working-directory: tf
