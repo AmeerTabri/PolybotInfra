@@ -1,41 +1,65 @@
-# These instructions are for Kubernetes v1.32.
+#!/bin/bash
+set -eux  # Strict error + log
+
+echo "Hello" > /home/ubuntu/k1.txt
+echo "Hello" > /home/ubuntu/k1.7.txt
+
 KUBERNETES_VERSION=v1.32
 
+# Base packages
 sudo apt-get update
-sudo apt-get install jq unzip ebtables ethtool -y
+sudo apt-get install -y jq unzip ebtables ethtool curl apt-transport-https ca-certificates gpg software-properties-common
 
-# install awscli
+echo "Hello" > /home/ubuntu/k2.txt
+
+# Install awscli
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
 
-# Enable IPv4 packet forwarding. sysctl params required by setup, params persist across reboots
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.ipv4.ip_forward = 1
-EOF
+echo "Hello" > /home/ubuntu/k3.txt
 
-# Apply sysctl params without reboot
+# Enable IPv4 forwarding
+echo "net.ipv4.ip_forward = 1" | sudo tee /etc/sysctl.d/k8s.conf
 sudo sysctl --system
 
-# Install cri-o kubelet kubeadm kubectl
-curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+echo "Hello" > /home/ubuntu/k4.txt
 
+# ✅ Always ensure keyrings folder exists:
+sudo mkdir -p /etc/apt/keyrings
+
+echo "Hello" > /home/ubuntu/k5.txt
+
+# ✅ Add Kubernetes repo with key:
+curl -fsSL https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${KUBERNETES_VERSION}/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+echo "Hello" > /home/ubuntu/k6.txt
+
+# ✅ Add CRI-O repo with key:
 curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" | sudo tee /etc/apt/sources.list.d/cri-o.list
 
+echo "Hello" > /home/ubuntu/k7.txt
+
+
+# Clean, update, wait, then install:
+sudo apt-get clean
 sudo apt-get update
-sudo apt-get install -y software-properties-common apt-transport-https ca-certificates curl gpg
+sleep 2
 sudo apt-get install -y cri-o kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 
-# start the CRIO container runtime and kubelet
-sudo systemctl start crio.service
-sudo systemctl enable --now crio.service
+echo "Hello" > /home/ubuntu/k8.txt
+
+# Enable services
+sudo systemctl enable --now crio
 sudo systemctl enable --now kubelet
 
-# disable swap memory
-swapoff -a
+echo "Hello" > /home/ubuntu/k9.txt
 
-# add the command to crontab to make it persistent across reboots
-(crontab -l ; echo "@reboot /sbin/swapoff -a") | crontab -
+# Disable swap now + persist
+sudo swapoff -a
+(crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab -
+
+echo "Hello" > /home/ubuntu/k10.txt
