@@ -35,11 +35,19 @@ module "polybot_service_vpc" {
   enable_nat_gateway = false
 }
 
-# ✅ Call k8s module and pass VPC + subnet
+# ✅ Call k8s module and pass VPC + subnets + worker vars
 module "k8s_cluster" {
   source = "./modules/k8s-cluster"
 
   ami_id   = var.ami_id
   vpc_id   = module.polybot_service_vpc.vpc_id
   subnet_id = module.polybot_service_vpc.public_subnets[0]
+
+  # NEW: pass worker & region info for ASG
+  worker_ami_id             = var.worker_ami_id
+  worker_instance_type      = "t3.micro"          # or a variable
+  key_name                  = var.key_name
+  region                    = var.region
+  join_command_secret_name  = "kubeadm-join-command"
+  public_subnets            = module.polybot_service_vpc.public_subnets
 }
