@@ -9,10 +9,21 @@ if [ ! -f /etc/kubernetes/admin.conf ]; then
   mkdir -p $HOME/.kube
   sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
   sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+  # ✅ Generate and push the join command to SSM
+  JOIN_CMD=$(kubeadm token create --print-join-command)
+  aws ssm put-parameter \
+    --name "/k8s/worker/join-command" \
+    --type "SecureString" \
+    --value "$JOIN_CMD" \
+    --overwrite \
+    --region us-west-2
+
 else
   echo "Control plane already initialized, skipping kubeadm init."
 fi
 
+# ✅ Install Calico if not already present
 if ! kubectl get pods -n kube-system | grep calico >/dev/null 2>&1; then
   kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.2/manifests/calico.yaml
 else

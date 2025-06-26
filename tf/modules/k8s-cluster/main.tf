@@ -1,3 +1,35 @@
+resource "aws_iam_role" "control_plane_role" {
+  name = "ameer-control-plane-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "control_plane_policy" {
+  name = "ameer-control-plane-policy"
+  role = aws_iam_role.control_plane_role.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Action = ["ssm:PutParameter"],
+      Resource = "*"
+    }]
+  })
+}
+
+resource "aws_iam_instance_profile" "control_plane_profile" {
+  name = "ameer-control-plane-profile"
+  role = aws_iam_role.control_plane_role.name
+}
+
 resource "aws_instance" "control-plane" {
   ami                         = var.ami_id
   instance_type               = "t2.medium"
@@ -6,12 +38,14 @@ resource "aws_instance" "control-plane" {
   associate_public_ip_address = true
   key_name                    = "AmeerKeyPair"
   user_data                   = file("${path.module}/user_data_control_plane.sh")
+  iam_instance_profile        = aws_iam_instance_profile.control_plane_profile.name
 
   tags = {
     Name      = "ameer-control-plane"
     Terraform = "true"
   }
 }
+
 
 resource "aws_security_group" "control_plane_sg" {
   name        = "ameer-control-plane-sg"
@@ -40,10 +74,6 @@ resource "aws_security_group" "control_plane_sg" {
   }
 }
 
-# -------------------------------
-# Worker Node Resources (ASG)
-# -------------------------------
-
 resource "aws_security_group" "worker_sg" {
   name   = "ameer-worker-sg"
   vpc_id = var.vpc_id
@@ -56,10 +86,10 @@ resource "aws_security_group" "worker_sg" {
   }
 
   ingress {
-    from_port         = 0
-    to_port           = 65535
-    protocol          = "tcp"
-    security_groups   = [aws_security_group.control_plane_sg.id]
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [aws_security_group.control_plane_sg.id]
   }
 
   egress {
@@ -91,9 +121,7 @@ resource "aws_iam_role_policy" "worker_policy" {
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Action = [
-        "ssm:GetParameter"
-      ],
+      Action = ["ssm:GetParameter"],
       Resource = "*"
     }]
   })
@@ -105,27 +133,24 @@ resource "aws_iam_instance_profile" "worker_profile" {
 }
 
 resource "aws_launch_template" "worker_lt" {
-  name         = "ameer-template"
-  image_id     = var.worker_ami_id
-  instance_type = var.worker_instance_type
+  name           = "ameer-template"
+  image_id       = var.worker_ami_id
+  instance_type  = var.worker_instance_type
+  key_name       = var.key_name
 
   iam_instance_profile {
     name = aws_iam_instance_profile.worker_profile.name
   }
 
-  key_name = var.key_name
-
   network_interfaces {
     associate_public_ip_address = true
-    security_groups = [aws_security_group.worker_sg.id]
+    security_groups             = [aws_security_group.worker_sg.id]
   }
 
-  user_data = base64encode(
-    templatefile("${path.module}/user_data_worker.sh.tpl", {
-      region      = var.region,
-      secret_name = var.join_command_secret_name
-    })
-  )
+  user_data = base64encode(templatefile("${path.module}/user_data_worker.sh.tpl", {
+    region      = var.region,
+    secret_name = var.join_command_secret_name
+  }))
 }
 
 resource "aws_autoscaling_group" "worker_asg" {
