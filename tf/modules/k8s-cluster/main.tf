@@ -92,7 +92,7 @@ resource "aws_iam_role_policy" "worker_policy" {
     Statement = [{
       Effect = "Allow",
       Action = [
-        "secretsmanager:GetSecretValue"
+        "ssm:GetParameter"
       ],
       Resource = "*"
     }]
@@ -105,8 +105,8 @@ resource "aws_iam_instance_profile" "worker_profile" {
 }
 
 resource "aws_launch_template" "worker_lt" {
-  name_prefix   = "ameer-worker-lt-"
-  image_id      = var.worker_ami_id
+  name         = "ameer-template"
+  image_id     = var.worker_ami_id
   instance_type = var.worker_instance_type
 
   iam_instance_profile {
@@ -130,7 +130,7 @@ resource "aws_launch_template" "worker_lt" {
 
 resource "aws_autoscaling_group" "worker_asg" {
   name                = "ameer-worker-asg"
-  desired_capacity    = 0
+  desired_capacity    = 1
   max_size            = 3
   min_size            = 0
   vpc_zone_identifier = var.public_subnets

@@ -1,29 +1,56 @@
 #!/bin/bash
-set -eux
+exec > /var/log/worker-init.log 2>&1
+set -e
 
-# Install AWS CLI and jq
-apt-get update && apt-get install -y awscli jq
+# Install prerequisites
+apt-get update
+apt-get install -y curl jq unzip ebtables ethtool gpg
 
-# Get the join command from Secrets Manager
-JOIN_CMD=$(aws secretsmanager get-secret-value --region ${region} --secret-id ${secret_name} | jq -r '.SecretString')
+# Install AWS CLI v2
+unzip -q awscliv2.zip
+./aws/install --update
 
-# Run it
-$JOIN_CMD
+# Enable IP forwarding
+cat <<EOF | tee /etc/sysctl.d/k8s.conf
+net.ipv4.ip_forward = 1
+EOF
+sysctl --system
 
+# Install CRI-O and Kubernetes
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
 
-##!/bin/bash
-#set -eux
-#
-## Install AWS CLI v2 and jq
-#sudo apt-get update
-#sudo apt-get install -y unzip jq
-#curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#unzip awscliv2.zip
-#sudo ./aws/install --update
-#
-## Get the join command from Secrets Manager
-#JOIN_CMD=$(aws secretsmanager get-secret-value --region us-west-2 --secret-id kubeadm-join-command | jq -r '.SecretString')
-#
-## Run it as root
-#sudo bash -c "$JOIN_CMD"
+curl -fsSL https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/cri-o-apt-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /" > /etc/apt/sources.list.d/cri-o.list
 
+apt-get update
+apt-get install -y cri-o kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+
+# Start services
+echo "Starting services"
+systemctl start crio
+systemctl enable crio
+systemctl enable kubelet
+
+# Disable swap (required by Kubernetes)
+swapoff -a
+(crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab -
+
+# Fetch kubeadm join command from SSM
+echo "Fetching kubeadm join command from SSM"
+JOIN_CMD=$(aws ssm get-parameter \
+  --name "/k8s/worker/join-command" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text)
+
+# Join if not already joined
+if [ ! -f /etc/kubernetes/kubelet.conf ]; then
+  echo "Joining the cluster"
+  $JOIN_CMD
+else
+  echo "Already part of the cluster"
+fi
+
+echo "Setup completed successfully"
