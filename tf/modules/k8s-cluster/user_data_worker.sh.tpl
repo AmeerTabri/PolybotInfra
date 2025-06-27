@@ -51,3 +51,8 @@ JOIN_CMD=$(aws ssm get-parameter \
 if [ ! -f /etc/kubernetes/kubelet.conf ]; then
   $JOIN_CMD
 fi
+
+# Install and start Amazon SSM Agent
+curl -O https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+dpkg -i amazon-ssm-agent.deb
+systemctl enable --now amazon-ssm-agent

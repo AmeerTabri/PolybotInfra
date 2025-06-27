@@ -19,7 +19,12 @@ resource "aws_iam_role_policy" "control_plane_policy" {
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Action = ["ssm:PutParameter"],
+      Action = [
+        "ssm:PutParameter",
+        "ssm:DescribeInstanceInformation",
+        "autoscaling:DescribeLifecycleHooks",
+        "sns:ListSubscriptionsByTopic"
+      ],
       Resource = "*"
     }]
   })
@@ -239,7 +244,8 @@ resource "aws_iam_policy" "lambda_ssm_access" {
         Action = [
           "ssm:GetParameter",
           "ssm:PutParameter",
-          "ssm:SendCommand"
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation"
         ],
         Resource = "*"
       },
@@ -271,6 +277,7 @@ resource "aws_lambda_function" "sns_log" {
   runtime          = "python3.11"
   filename         = "function.zip"
   source_code_hash = filebase64sha256("function.zip")
+  timeout          = 60
 }
 
 resource "aws_lambda_permission" "allow_sns" {
@@ -285,4 +292,9 @@ resource "aws_sns_topic_subscription" "lambda_sub" {
   topic_arn = aws_sns_topic.asg_notifications.arn
   protocol  = "lambda"
   endpoint  = aws_lambda_function.sns_log.arn
+}
+
+resource "aws_iam_role_policy_attachment" "control_plane_ssm_core" {
+  role       = aws_iam_role.control_plane_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
