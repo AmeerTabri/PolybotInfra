@@ -17,7 +17,6 @@ terraform {
 
 provider "aws" {
   region  = var.region
-  profile = "default"
 }
 
 # ✅ VPC created at root
