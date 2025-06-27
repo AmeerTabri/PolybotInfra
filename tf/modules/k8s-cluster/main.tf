@@ -155,7 +155,7 @@ resource "aws_launch_template" "worker_lt" {
 
 resource "aws_autoscaling_group" "worker_asg" {
   name                = "ameer-worker-asg"
-  desired_capacity    = 1
+  desired_capacity    = 0
   max_size            = 3
   min_size            = 0
   vpc_zone_identifier = var.public_subnets
@@ -177,7 +177,7 @@ resource "aws_sns_topic" "asg_notifications" {
 }
 
 resource "aws_iam_role" "asg_lifecycle_role" {
-  name = "asg-lifecycle-sns-role"
+  name = "ameer-asg-lifecycle-sns-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
@@ -204,4 +204,52 @@ resource "aws_autoscaling_lifecycle_hook" "worker_launch_hook" {
   role_arn                = aws_iam_role.asg_lifecycle_role.arn
   heartbeat_timeout       = 30
   default_result          = "CONTINUE"
+}
+
+resource "aws_sns_topic_subscription" "email_sub" {
+  topic_arn = aws_sns_topic.asg_notifications.arn
+  protocol  = "email"
+  endpoint  = "ameer.t.2000@gmail.com"
+}
+
+resource "aws_iam_role" "lambda_log_role" {
+  name = "ameer-sns-lambda-log-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
+  role       = aws_iam_role.lambda_log_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_lambda_function" "sns_log" {
+  function_name = "ameer-sns-log-function"
+  role          = aws_iam_role.lambda_log_role.arn
+  handler       = "sns_log_lambda.lambda_handler"
+  runtime       = "python3.11"
+  filename      = "function.zip"
+  source_code_hash = filebase64sha256("function.zip")
+}
+
+resource "aws_lambda_permission" "allow_sns" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.sns_log.function_name
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.asg_notifications.arn
+}
+
+resource "aws_sns_topic_subscription" "lambda_sub" {
+  topic_arn = aws_sns_topic.asg_notifications.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.sns_log.arn
 }
