@@ -22,7 +22,7 @@ def lambda_handler(event, context):
         print("🧪 Current token:", value)
         print("⏱️ Last updated:", timestamp)
 
-        if True or (datetime.now(timestamp.tzinfo) - timestamp) > timedelta(hours=23):
+        if (datetime.now(timestamp.tzinfo) - timestamp) > timedelta(hours=23):
             print("🔁 Token expired — generating a new one")
             generate_new_token(instance_id)
         else:
