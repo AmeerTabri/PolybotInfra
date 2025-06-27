@@ -206,6 +206,8 @@ resource "aws_autoscaling_lifecycle_hook" "worker_launch_hook" {
   default_result          = "CONTINUE"
 }
 
+data "aws_caller_identity" "current" {}
+
 resource "aws_sns_topic_subscription" "email_sub" {
   topic_arn = aws_sns_topic.asg_notifications.arn
   protocol  = "email"
@@ -226,17 +228,39 @@ resource "aws_iam_role" "lambda_log_role" {
   })
 }
 
+resource "aws_iam_policy" "lambda_ssm_access" {
+  name = "ameer-lambda-ssm-access"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "ssm:GetParameter",
+          "ssm:PutParameter"
+        ],
+        Resource = "arn:aws:ssm:us-west-2:${data.aws_caller_identity.current.account_id}:parameter/k8s/worker/join-command"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
   role       = aws_iam_role.lambda_log_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_ssm_access_attach" {
+  role       = aws_iam_role.lambda_log_role.name
+  policy_arn = aws_iam_policy.lambda_ssm_access.arn
+}
+
 resource "aws_lambda_function" "sns_log" {
-  function_name = "ameer-sns-log-function"
-  role          = aws_iam_role.lambda_log_role.arn
-  handler       = "sns_log_lambda.lambda_handler"
-  runtime       = "python3.11"
-  filename      = "function.zip"
+  function_name    = "ameer-sns-log-function"
+  role             = aws_iam_role.lambda_log_role.arn
+  handler          = "sns_log_lambda.lambda_handler"
+  runtime          = "python3.11"
+  filename         = "function.zip"
   source_code_hash = filebase64sha256("function.zip")
 }
 
