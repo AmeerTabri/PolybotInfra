@@ -1,10 +1,10 @@
 name: Init Control Plane
 
 on:
-  push:
-    branches:
-      - feature/k8s-infra
-  workflow_dispatch:
+  workflow_run:
+    workflows: ["Provision Infrastructure"]
+    types:
+      - completed
 
 jobs:
   init_control_plane:
