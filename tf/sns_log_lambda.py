@@ -1,15 +1,20 @@
 import boto3
-import os
 from datetime import datetime, timedelta
 
 REGION = "us-west-2"
 SSM_PARAM = "/k8s/worker/join-command"
-INSTANCE_ID = os.environ["CONTROL_PLANE_INSTANCE_ID"]  # Pass this as an env var to Lambda
 
 ssm = boto3.client("ssm", region_name=REGION)
+ec2 = boto3.client("ec2", region_name=REGION)
 
 def lambda_handler(event, context):
     print("✅ Lambda triggered by SNS")
+
+    instance_id = get_control_plane_instance_id()
+    if not instance_id:
+        print("❌ No running control plane instance found")
+        return {"statusCode": 500}
+
     try:
         param = ssm.get_parameter(Name=SSM_PARAM, WithDecryption=True)
         value = param["Parameter"]["Value"]
@@ -17,23 +22,34 @@ def lambda_handler(event, context):
         print("🧪 Current token:", value)
         print("⏱️ Last updated:", timestamp)
 
-        if (datetime.now(timestamp.tzinfo) - timestamp) > timedelta(hours=23):
+        if (datetime.now(timestamp.tzinfo) - timestamp) > timedelta(hours=20):
             print("🔁 Token expired — generating a new one")
-            generate_new_token()
+            generate_new_token(instance_id)
         else:
             print("✅ Token is still valid")
 
     except ssm.exceptions.ParameterNotFound:
         print("❌ Token parameter not found — generating a new one")
-        generate_new_token()
+        generate_new_token(instance_id)
 
     return {"statusCode": 200}
 
+def get_control_plane_instance_id():
+    response = ec2.describe_instances(
+        Filters=[
+            {"Name": "tag:Name", "Values": ["ameer-control-plane"]},
+            {"Name": "instance-state-name", "Values": ["running"]}
+        ]
+    )
+    reservations = response.get("Reservations", [])
+    if reservations and reservations[0]["Instances"]:
+        return reservations[0]["Instances"][0]["InstanceId"]
+    return None
 
-def generate_new_token():
+def generate_new_token(instance_id):
     ssm_cmd = "kubeadm token create --print-join-command"
     response = ssm.send_command(
-        InstanceIds=[INSTANCE_ID],
+        InstanceIds=[instance_id],
         DocumentName="AWS-RunShellScript",
         Parameters={"commands": [ssm_cmd]},
     )
@@ -41,17 +57,16 @@ def generate_new_token():
 
     # Wait for the command to finish
     waiter = ssm.get_waiter("command_executed")
-    waiter.wait(CommandId=command_id, InstanceId=INSTANCE_ID)
+    waiter.wait(CommandId=command_id, InstanceId=instance_id)
 
     # Get output
     output = ssm.get_command_invocation(
         CommandId=command_id,
-        InstanceId=INSTANCE_ID,
+        InstanceId=instance_id,
     )
     join_cmd = output["StandardOutputContent"].strip()
     print("📦 New join command:", join_cmd)
 
-    # Push to SSM
     ssm.put_parameter(
         Name=SSM_PARAM,
         Value=join_cmd,

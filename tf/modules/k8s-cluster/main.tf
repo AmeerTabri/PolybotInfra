@@ -206,6 +206,7 @@ resource "aws_autoscaling_lifecycle_hook" "worker_launch_hook" {
   default_result          = "CONTINUE"
 }
 
+
 data "aws_caller_identity" "current" {}
 
 resource "aws_sns_topic_subscription" "email_sub" {
@@ -237,9 +238,17 @@ resource "aws_iam_policy" "lambda_ssm_access" {
         Effect = "Allow",
         Action = [
           "ssm:GetParameter",
-          "ssm:PutParameter"
+          "ssm:PutParameter",
+          "ssm:SendCommand"
         ],
-        Resource = "arn:aws:ssm:us-west-2:${data.aws_caller_identity.current.account_id}:parameter/k8s/worker/join-command"
+        Resource = "*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "ec2:DescribeInstances"
+        ],
+        Resource = "*"
       }
     ]
   })
