@@ -171,3 +171,37 @@ resource "aws_autoscaling_group" "worker_asg" {
     propagate_at_launch = true
   }
 }
+
+resource "aws_sns_topic" "asg_notifications" {
+  name = "asg-worker-launch-topic"
+}
+
+resource "aws_iam_role" "asg_lifecycle_role" {
+  name = "asg-lifecycle-sns-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "autoscaling.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_policy_attachment" "asg_lifecycle_policy" {
+  name       = "asg-lifecycle-sns-policy"
+  roles      = [aws_iam_role.asg_lifecycle_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AutoScalingNotificationAccessRole"
+}
+
+resource "aws_autoscaling_lifecycle_hook" "worker_launch_hook" {
+  name                    = "worker-launch-hook"
+  autoscaling_group_name = aws_autoscaling_group.worker_asg.name
+  lifecycle_transition    = "autoscaling:EC2_INSTANCE_LAUNCHING"
+  notification_target_arn = aws_sns_topic.asg_notifications.arn
+  role_arn                = aws_iam_role.asg_lifecycle_role.arn
+  heartbeat_timeout       = 30
+  default_result          = "CONTINUE"
+}
