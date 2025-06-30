@@ -29,3 +29,10 @@ if ! kubectl get pods -n kube-system | grep calico >/dev/null 2>&1; then
 else
   echo "Calico already installed, skipping."
 fi
+
+# ✅ Install NGINX Ingress Controller if not already present
+if ! kubectl get pods -n ingress-nginx >/dev/null 2>&1; then
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/baremetal/deploy.yaml
+else
+  echo "NGINX Ingress already installed, skipping."
+fi
