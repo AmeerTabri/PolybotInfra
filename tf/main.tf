@@ -44,7 +44,7 @@ module "k8s_cluster" {
 
   # NEW: pass worker & region info for ASG
   worker_ami_id             = var.worker_ami_id
-  worker_instance_type      = "t3.micro"          # or a variable
+  worker_instance_type      = "t3.micro"
   key_name                  = var.key_name
   region                    = var.region
   join_command_secret_name  = "kubeadm-join-command"
