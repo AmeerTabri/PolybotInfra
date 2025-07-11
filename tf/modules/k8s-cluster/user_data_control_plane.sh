@@ -47,3 +47,16 @@ swapoff -a
 (crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab -
 
 echo "Finished successfully" >> /var/log/k.txt
+
+# Wait for kube-apiserver to be ready (assuming kubeadm init is done elsewhere)
+until kubectl version --short; do
+  echo "Waiting for kube-apiserver..."
+  sleep 5
+done
+
+# Create dev and prod namespaces
+kubectl create ns dev || true
+kubectl create ns prod || true
+
+# Apply NGINX ingress controller in default namespace (ingress-nginx)
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.13.0/deploy/static/provider/baremetal/deploy.yaml
