@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: polybot
-          image: ameertabri/polybot-dev
+          image: ameertabri/polybot-dev:80
           ports:
             - containerPort: 3000
 ---
