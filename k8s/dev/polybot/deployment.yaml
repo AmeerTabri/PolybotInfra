@@ -26,6 +26,8 @@ spec:
                 secretKeyRef:
                   name: polybot-secret
                   key: TELEGRAM_BOT_TOKEN
+            - name: BOT_APP_URL
+              value: "https://ameer-bot-dev.fursa.click"
 ---
 apiVersion: v1
 kind: Service
