@@ -20,6 +20,12 @@ spec:
           image: ameertabri/polybot-dev:80
           ports:
             - containerPort: 3000
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: TELEGRAM_BOT_TOKEN
 ---
 apiVersion: v1
 kind: Service
