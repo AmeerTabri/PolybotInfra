@@ -351,13 +351,13 @@ spec:
   - appProtocol: http
     name: http
     port: 80
-    nodePort: 32083
+    nodePort: 32222
     protocol: TCP
     targetPort: http
   - appProtocol: https
     name: https
     port: 443
-    nodePort: 30516
+    nodePort: 32093
     protocol: TCP
     targetPort: https
   selector:
