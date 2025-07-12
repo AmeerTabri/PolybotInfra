@@ -160,9 +160,9 @@ resource "aws_launch_template" "worker_lt" {
 
 resource "aws_autoscaling_group" "worker_asg" {
   name                = "ameer-worker-asg"
-  desired_capacity    = 0
+  desired_capacity    = 1
   max_size            = 3
-  min_size            = 0
+  min_size            = 1
   vpc_zone_identifier = var.public_subnets
 
   launch_template {
