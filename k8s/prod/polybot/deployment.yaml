@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polybot
+  namespace: prod
+  labels:
+    app: polybot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: polybot
+  template:
+    metadata:
+      labels:
+        app: polybot
+    spec:
+      containers:
+        - name: polybot
+          image: ameertabri/polybot-dev:80
+          ports:
+            - containerPort: 8443
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: TELEGRAM_BOT_TOKEN
+            - name: BOT_APP_URL
+              value: "https://ameer-bot.fursa.click"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-polybot
+  namespace: prod
+spec:
+  selector:
+    app: polybot
+  ports:
+    - protocol: TCP
+      port: 8443
+      targetPort: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: polybot-ingress
+  namespace: prod
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ameer-bot.fursa.click
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: service-polybot
+                port:
+                  number: 8443
