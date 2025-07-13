@@ -32,6 +32,8 @@ spec:
               value: "service-yolo"
             - name: AWS_REGION
               value: "us-west-2"
+            - name: SQS_AWS_REGION
+              value: "us-west-2"
             - name: AWS_S3_BUCKET
               value: "ameer-polybot-images-dev"
             - name: AWS_ACCESS_KEY_ID
