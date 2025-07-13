@@ -30,6 +30,11 @@ spec:
               value: "https://ameer-bot-dev.fursa.click"
             - name: EC2_YOLO
               value: "service-yolo"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_S3_BUCKET
+              value: "ameer-polybot-images-dev"
+
 ---
 apiVersion: v1
 kind: Service
