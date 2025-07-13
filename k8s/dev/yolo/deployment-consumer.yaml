@@ -35,3 +35,6 @@ spec:
               value: "https://sqs.us-west-2.amazonaws.com/228281126655/ameer-polybot-chat-messages-dev"
             - name: POLYBOT_URL
               value: "http://service-polybot:8443"
+            - name: SQS_AWS_REGION
+              value: "us-west-2"
+
