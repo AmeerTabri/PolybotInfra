@@ -28,6 +28,8 @@ spec:
                   key: TELEGRAM_BOT_TOKEN
             - name: BOT_APP_URL
               value: "https://ameer-bot-dev.fursa.click"
+            - name: EC2_YOLO
+              value: "service-yolo"
 ---
 apiVersion: v1
 kind: Service
