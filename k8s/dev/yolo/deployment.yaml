@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yolo
+  namespace: dev
+  labels:
+    app: yolo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yolo
+  template:
+    metadata:
+      labels:
+        app: yolo
+    spec:
+      containers:
+        - name: yolo
+          image: ameertabri/yolo-dev:27
+          ports:
+            - containerPort: 5000 # adjust if different
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-yolo
+  namespace: dev
+spec:
+  selector:
+    app: yolo
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP  # only accessible within the cluster
