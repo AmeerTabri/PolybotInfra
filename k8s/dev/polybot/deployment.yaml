@@ -48,8 +48,9 @@ metadata:
   name: polybot-ingress
   namespace: dev
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    kubernetes.io/ingress.class: nginx
 spec:
+  ingressClassName: nginx
   rules:
     - host: ameer-bot-dev.fursa.click
       http:
