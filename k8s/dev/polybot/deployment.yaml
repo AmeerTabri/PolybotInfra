@@ -46,6 +46,9 @@ spec:
                 secretKeyRef:
                   name: polybot-secret
                   key: AWS_SECRET_ACCESS_KEY
+            - name: QUEUE_URL
+              value: "https://sqs.us-west-2.amazonaws.com/228281126655/ameer-polybot-chat-messages-dev"
+
 
 
 ---
