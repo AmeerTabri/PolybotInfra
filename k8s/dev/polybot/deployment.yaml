@@ -34,6 +34,17 @@ spec:
               value: "us-east-1"
             - name: AWS_S3_BUCKET
               value: "ameer-polybot-images-dev"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_SECRET_ACCESS_KEY
+
 
 ---
 apiVersion: v1
