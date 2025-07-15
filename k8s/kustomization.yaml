@@ -3,4 +3,3 @@ resources:
   - prod/polybot/deployment.yaml
   - prod/yolo/deployment.yaml
   - prod/yolo/deployment-consumer.yaml
-  - ingress/nginx-ingress-controller.yaml
