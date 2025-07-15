@@ -1,0 +1,5 @@
+# k8s/dev/kustomization.yaml
+resources:
+  - polybot/deployment.yaml
+  - yolo/deployment.yaml
+  - yolo/deployment-consumer.yaml
