@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: polybot
-  namespace: prod
+  namespace: dev
   labels:
     app: polybot
 spec:
@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: polybot
-          image: ameertabri/polybot:63
+          image: ameertabri/polybot-dev:85
           ports:
             - containerPort: 8443
           env:
@@ -27,7 +27,30 @@ spec:
                   name: polybot-secret
                   key: TELEGRAM_BOT_TOKEN
             - name: BOT_APP_URL
-              value: "https://ameer-bot.fursa.click"
+              value: "https://ameer-bot-dev.fursa.click"
+            - name: EC2_YOLO
+              value: "service-yolo"
+            - name: AWS_REGION
+              value: "us-west-2"
+            - name: SQS_AWS_REGION
+              value: "us-west-2"
+            - name: AWS_S3_BUCKET
+              value: "ameer-polybot-images-dev"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: QUEUE_URL
+              value: "https://sqs.us-west-2.amazonaws.com/228281126655/ameer-polybot-chat-messages-dev"
+
+
+
 ---
 apiVersion: v1
 kind: Service
@@ -52,7 +75,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: ameer-bot.fursa.click
+    - host: ameer-bot-dev.fursa.click
       http:
         paths:
           - path: /

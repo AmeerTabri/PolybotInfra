@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yolo-consumer
+  namespace: prod
+  labels:
+    app: yolo-consumer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yolo-consumer
+  template:
+    metadata:
+      labels:
+        app: yolo-consumer
+    spec:
+      containers:
+        - name: yolo-consumer
+          image: ameertabri/yolo-consumer-dev:30
+          env:
+            - name: AWS_REGION
+              value: "us-west-2"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: polybot-secret
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: QUEUE_URL
+              value: "https://sqs.us-west-2.amazonaws.com/228281126655/ameer-polybot-chat-messages-dev"
+            - name: POLYBOT_URL
+              value: "http://service-polybot:8443"
+            - name: SQS_AWS_REGION
+              value: "us-west-2"
+

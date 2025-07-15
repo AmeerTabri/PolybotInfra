@@ -1,5 +1,6 @@
 # k8s/dev/kustomization.yaml
 resources:
-  - dev/polybot/deployment.yaml
-  - dev/yolo/deployment.yaml
-  - dev/yolo/deployment-consumer.yaml
+  - prod/polybot/deployment.yaml
+  - prod/yolo/deployment.yaml
+  - prod/yolo/deployment-consumer.yaml
+  - ingress/nginx-ingress-controller.yaml
